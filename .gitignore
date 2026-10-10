@@ -1,0 +1,8 @@
+/target/
+.env
+/Reports/
+/ResultExcel/
+/ScreenShots/
+/test-output/
+/testngreports/
+/newScreenShot.png
