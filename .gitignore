@@ -1,8 +1,36 @@
+# Maven build output
 /target/
+
+# Java compiler and JVM output
+*.class
+hs_err_pid*.log
+
+# Local secrets and environment files
 .env
+.env.*
+!.env.example
+
+# IDE metadata
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# Test reports and generated framework output
+/test-output/
+/testngreports/
 /Reports/
 /ResultExcel/
 /ScreenShots/
-/test-output/
-/testngreports/
+/screenshots/
+/UploadFiles/recordings/
+/logs/
+*.log
 /newScreenShot.png
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini

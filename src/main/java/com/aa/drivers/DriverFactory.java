@@ -47,8 +47,6 @@ public class DriverFactory {
 
         // Launch standard Chrome browser with logging
         if (browserType.equalsIgnoreCase("chrome")) {
-            WebDriverManager.chromedriver().setup();
-
             ChromeOptions options = new ChromeOptions();
             options.addArguments("--remote-allow-origins=*");
 
@@ -63,8 +61,6 @@ public class DriverFactory {
 
         // Launch Chrome browser in Incognito mode with logging
         else if (browserType.equalsIgnoreCase("Ichrome")) {
-            WebDriverManager.chromedriver().setup();
-
             ChromeOptions options = new ChromeOptions();
             options.addArguments("--incognito"); // Open in incognito
             options.addArguments("--remote-allow-origins=*");
@@ -140,8 +136,6 @@ public class DriverFactory {
 
         // Launch standard Chrome browser with logging
         else {
-            WebDriverManager.chromedriver().setup();
-
             ChromeOptions options = new ChromeOptions();
             options.addArguments("--remote-allow-origins=*");
 
