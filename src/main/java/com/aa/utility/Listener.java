@@ -571,30 +571,40 @@ public class Listener extends BaseClass implements ITestListener, IRetryAnalyzer
             
             String timestamp = Library.timeStampLogging(); // Get current timestamp
 
-         // Email details
+         String safeSuiteName = escapeHtml(suiteName);
          String subject = "Automation Test Report - " + suiteName;
          String toEmails = EnvironmentUtils.getValue("TO_EMAIL");
-         // Email body details
-         String greeting = "Hello Team,";
-         String messageIntro = "Please find attached the Automation Test Execution Report.";
-         String totalMsg = "Total: " + total;
-         String passedMsg = "Passed: " + passed;
-         String failedMsg = "Failed: " + failed;
-         String skippedMsg = "Skipped: " + skipped;
-         String timestampMsg = "Report Generated On: " + timestamp;
-         String regards = "Regards,";
-         String signature = "Automation Framework";
-
-         // Combine all parts into the body
-         String emailBody = greeting + "\n\n" 
-                          + messageIntro + "\n\n" 
-                          + totalMsg + "\n" 
-                          + passedMsg + "\n" 
-                          + failedMsg + "\n" 
-                          + skippedMsg + "\n\n" 
-                          + timestampMsg + "\n\n" 
-                          + regards + "\n" 
-                          + signature;
+         String emailBody = "<!DOCTYPE html>"
+                 + "<html><body style=\"margin:0;padding:24px;background-color:#f3f6fb;"
+                 + "font-family:Arial,Helvetica,sans-serif;color:#1f2937;\">"
+                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" "
+                 + "style=\"max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5eaf1;"
+                 + "border-radius:14px;overflow:hidden;\">"
+                 + "<tr><td style=\"padding:28px 32px;background:#172554;color:#ffffff;\">"
+                 + "<div style=\"font-size:13px;letter-spacing:1.5px;text-transform:uppercase;"
+                 + "color:#bfdbfe;\">AUTOMATION TEST REPORT</div>"
+                 + "<h1 style=\"margin:10px 0 6px;font-size:25px;line-height:1.3;\">"
+                 + "&#9989; Test execution complete</h1>"
+                 + "<div style=\"font-size:15px;color:#e0e7ff;\">" + safeSuiteName + "</div>"
+                 + "</td></tr>"
+                 + "<tr><td style=\"padding:26px 32px 10px;\">"
+                 + "<p style=\"margin:0 0 20px;font-size:15px;line-height:1.6;\">"
+                 + "Hello Team,<br>Your automated test run summary is ready. "
+                 + "The detailed report is attached.</p>"
+                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\">"
+                 + "<tr>"
+                 + summaryCard("TOTAL", total, "#eff6ff", "#1d4ed8")
+                 + summaryCard("PASSED", passed, "#ecfdf5", "#047857")
+                 + summaryCard("FAILED", failed, "#fef2f2", "#b91c1c")
+                 + summaryCard("SKIPPED", skipped, "#fffbeb", "#b45309")
+                 + "</tr></table>"
+                 + "<div style=\"margin-top:22px;padding:14px 16px;background:#f8fafc;"
+                 + "border-radius:8px;font-size:13px;color:#475569;\">"
+                 + "&#128336; <strong>Run time:</strong> " + escapeHtml(timestamp)
+                 + "</div></td></tr>"
+                 + "<tr><td style=\"padding:18px 32px 26px;font-size:13px;color:#64748b;\">"
+                 + "Regards,<br><strong style=\"color:#334155;\">Automation Framework</strong>"
+                 + "</td></tr></table></body></html>";
 
          // Send email
          EmailUtils.sendEmailWithAttachment(toEmails, subject, emailBody, ClientFriendlyReporter.FILE_PATH);
@@ -609,6 +619,26 @@ public class Listener extends BaseClass implements ITestListener, IRetryAnalyzer
 
     }
     
+    private static String summaryCard(String label, int count, String background, String color) {
+        return "<td width=\"25%\" style=\"padding:4px;\">"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" "
+                + "style=\"background:" + background + ";border-radius:9px;text-align:center;\">"
+                + "<tr><td style=\"padding:14px 6px;\">"
+                + "<div style=\"font-size:11px;font-weight:bold;letter-spacing:.7px;color:" + color + ";\">"
+                + label + "</div><div style=\"padding-top:7px;font-size:25px;font-weight:bold;color:"
+                + color + ";\">" + count + "</div></td></tr></table></td>";
+    }
+
+    private static String escapeHtml(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
     
   
 }

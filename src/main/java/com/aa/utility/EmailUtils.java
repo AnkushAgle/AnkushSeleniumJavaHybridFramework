@@ -50,18 +50,29 @@ public class EmailUtils {
 
         try {
             // Create message
-            Message message = new MimeMessage(session);
+            MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(from));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
-            message.setSubject(subject);
+            message.setSubject(subject, "UTF-8");
 
-            // Body part
-            MimeBodyPart messageBodyPart = new MimeBodyPart();
-            messageBodyPart.setText(body);
+            MimeBodyPart textBodyPart = new MimeBodyPart();
+            textBodyPart.setText(
+                    body.replaceAll("(?i)<br\\s*/?>", "\n").replaceAll("<[^>]*>", ""),
+                    "UTF-8");
+
+            MimeBodyPart htmlBodyPart = new MimeBodyPart();
+            htmlBodyPart.setContent(body, "text/html; charset=UTF-8");
+
+            MimeMultipart alternative = new MimeMultipart("alternative");
+            alternative.addBodyPart(textBodyPart);
+            alternative.addBodyPart(htmlBodyPart);
+
+            MimeBodyPart bodyPart = new MimeBodyPart();
+            bodyPart.setContent(alternative);
 
             // Attachment part
             Multipart multipart = new MimeMultipart();
-            multipart.addBodyPart(messageBodyPart);
+            multipart.addBodyPart(bodyPart);
 
             if (filePath != null) {
                 MimeBodyPart attachmentPart = new MimeBodyPart();
