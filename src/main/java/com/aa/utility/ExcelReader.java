@@ -52,6 +52,7 @@ import ru.yandex.qatools.ashot.Screenshot;
 import ru.yandex.qatools.ashot.coordinates.WebDriverCoordsProvider;
 import ru.yandex.qatools.ashot.shooting.ShootingStrategies;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -59,7 +60,7 @@ import java.io.File;
 import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 
 
-public class ExcelReader {
+public class ExcelReader implements AutoCloseable {
     public String path;
     public FileInputStream fis = null;
     public FileOutputStream fileOut = null;
@@ -67,6 +68,43 @@ public class ExcelReader {
     private Sheet sheet = null;
     private Row row = null;
     private Cell cell = null;
+
+    @Override
+    public void close() throws IOException {
+        IOException closeException = null;
+        try {
+            if (fileOut != null) {
+                fileOut.close();
+            }
+        } catch (IOException e) {
+            closeException = e;
+        }
+        try {
+            if (fis != null) {
+                fis.close();
+            }
+        } catch (IOException e) {
+            if (closeException == null) {
+                closeException = e;
+            } else {
+                closeException.addSuppressed(e);
+            }
+        }
+        try {
+            if (workbook != null) {
+                workbook.close();
+            }
+        } catch (IOException e) {
+            if (closeException == null) {
+                closeException = e;
+            } else {
+                closeException.addSuppressed(e);
+            }
+        }
+        if (closeException != null) {
+            throw closeException;
+        }
+    }
 
     public ExcelReader(String path) {
         String exceptionMAssageMate = "";
@@ -153,35 +191,40 @@ public class ExcelReader {
             return;
         }
 
-        String fileExceptionMassage = "";
         this.path = path;
 
         try {
-            // Attempt to open and read the existing Excel file
-            fis = new FileInputStream(path);
-            workbook = WorkbookFactory.create(fis);
-            sheet = workbook.getSheetAt(0);
-            fis.close();
-            System.out.println("Excel file successfully loaded: " + path);
-        } catch (Exception e) {
-            fileExceptionMassage = e.getMessage();
-            e.printStackTrace();
-        } finally {
-            // Handle Truncated ZIP file exception specifically
-            if (fileExceptionMassage.contains("Truncated ZIP file")) {
-                System.err.println("Truncated ZIP file error detected: " + fileExceptionMassage);
-                // Delete the corrupted file
-                deleteCorruptedFile();
-                // Create a new Excel file
-                createNewExcelFile(path);
-            } else if (fileExceptionMassage.contains("The system cannot find the file specified")) {
-                System.err.println("The system cannot find the file specified : " + fileExceptionMassage);
-                // Create a new Excel file
-                createNewExcelFile(path);
-            } else {
-                // Handle other types of exceptions
-                System.err.println("Error reading the Excel file: " + fileExceptionMassage);
+            Path resultFile = Path.of(path).toAbsolutePath().normalize();
+            Path resultDirectory = resultFile.getParent();
+            if (resultDirectory != null) {
+                Files.createDirectories(resultDirectory);
             }
+
+            if (Files.notExists(resultFile)) {
+                createNewExcelFile(resultFile.toString());
+            }
+
+            loadWorkbook();
+        } catch (Exception e) {
+            if (e.getMessage() != null && e.getMessage().contains("Truncated ZIP file")) {
+                try {
+                    Files.deleteIfExists(Path.of(path));
+                    createNewExcelFile(path);
+                    loadWorkbook();
+                } catch (Exception recoveryException) {
+                    throw new IllegalStateException("Unable to recreate result Excel file: " + path,
+                            recoveryException);
+                }
+            } else {
+                throw new IllegalStateException("Unable to initialize result Excel file: " + path, e);
+            }
+        }
+    }
+
+    private void loadWorkbook() throws IOException {
+        try (FileInputStream input = new FileInputStream(path)) {
+            workbook = WorkbookFactory.create(input);
+            sheet = workbook.getSheetAt(0);
         }
     }
 
@@ -388,40 +431,23 @@ public class ExcelReader {
 
     // Function to create a new Excel file
     public void createNewExcelFile(String newFilePath) {
-        // Create a new workbook and a sheet
-        Workbook newWorkbook;
-        if (newFilePath.toLowerCase().endsWith(".xlsx")) {
-            newWorkbook = new XSSFWorkbook();
-        } else {
-            newWorkbook = new org.apache.poi.hssf.usermodel.HSSFWorkbook();
-        }
-        
-        Sheet newSheet = newWorkbook.createSheet("Sheet1");
-
-        // Optionally, add some initial data
-        Row headerRow = newSheet.createRow(0);
-        headerRow.createCell(0).setCellValue("Name");
-        headerRow.createCell(1).setCellValue("Age");
-        headerRow.createCell(2).setCellValue("City");
-
-        Row dataRow = newSheet.createRow(1);
-        dataRow.createCell(0).setCellValue("John Doe");
-        dataRow.createCell(1).setCellValue(30);
-        dataRow.createCell(2).setCellValue("New York");
-
-        // Write the workbook to the file
-        try (FileOutputStream fileOut = new FileOutputStream(newFilePath)) {
-            newWorkbook.write(fileOut);
-            System.out.println("New Excel file created at: " + newFilePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            // Close the workbook to free resources
-            try {
-                newWorkbook.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+        Path resultFile = Path.of(newFilePath).toAbsolutePath().normalize();
+        Path resultDirectory = resultFile.getParent();
+        try {
+            if (resultDirectory != null) {
+                Files.createDirectories(resultDirectory);
             }
+
+            try (Workbook newWorkbook = newFilePath.toLowerCase().endsWith(".xlsx")
+                    ? new XSSFWorkbook()
+                    : new org.apache.poi.hssf.usermodel.HSSFWorkbook();
+                 FileOutputStream fileOut = new FileOutputStream(resultFile.toFile())) {
+                newWorkbook.createSheet("Result").createRow(0);
+                newWorkbook.write(fileOut);
+            }
+            System.out.println("New Excel file created at: " + resultFile);
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to create result Excel file: " + resultFile, e);
         }
     }
 

@@ -22,7 +22,8 @@ hs_err_pid*.log
 /test-output/
 /testngreports/
 /Reports/
-/ResultExcel/
+/ResultExcel/*
+!/ResultExcel/.gitkeep
 /ScreenShots/
 /screenshots/
 /UploadFiles/recordings/

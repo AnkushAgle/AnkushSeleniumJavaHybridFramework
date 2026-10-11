@@ -12,7 +12,8 @@
   
     <classes>
     
-      	    
+ <class name="com.test.demoqa.ExcelReaderOutputTest"/>
+
  <class name="com.test.demoqa.PracticeFormTestUsingJsonFile">
  
   <methods>
