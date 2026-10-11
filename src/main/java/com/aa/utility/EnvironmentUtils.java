@@ -32,4 +32,16 @@ public final class EnvironmentUtils {
 
         return value;
     }
+
+    public static boolean isConfigured(String key) {
+        if (key == null || key.isBlank()) {
+            throw new IllegalArgumentException("Environment variable name must not be blank");
+        }
+
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            value = DOTENV.get(key);
+        }
+        return value != null && !value.isBlank();
+    }
 }

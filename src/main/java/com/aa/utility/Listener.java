@@ -537,43 +537,25 @@ public class Listener extends BaseClass implements ITestListener, IRetryAnalyzer
     @Override
     public void onExecutionFinish() {
 
-        // === Send Email at the End of Suite ===
         try {
-            // Path to your generated Extent Report or Summary Report
-            String reportPath = System.getProperty("user.dir") + File.separator + "test-output" + File.separator + "emailable-report.html";
-
-
-            String pdfFilePath = System.getProperty("user.dir") + File.separator + "test-output" + File.separator + "emailable-report.pdf";
-
-            
-          boolean isConverted=  HtmlToPdfConverter.convertHtmlToPdf(reportPath, pdfFilePath);
-          
-          
-          if(isConverted) {
-        	  
-        	  reportPath=pdfFilePath;
-          }
-          
-          
-            
-            // Wait for file to be generated (max 30 seconds)
-            File reportFile = new File(reportPath);
-            int attempts = 0;
-            while (!reportFile.exists() && attempts < 30) {  // wait up to 30s
-                try {
-                    Thread.sleep(1000); // 1 second
-                    attempts++;
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            String[] requiredEmailSettings = {"TO_EMAIL", "FROM_EMAIL", "EMAIL_API_KEY"};
+            String missingSettings = java.util.Arrays.stream(requiredEmailSettings)
+                    .filter(key -> !EnvironmentUtils.isConfigured(key))
+                    .collect(java.util.stream.Collectors.joining(", "));
+            if (!missingSettings.isEmpty()) {
+                System.out.println("Skipping test report email; missing configuration: " + missingSettings);
+                return;
             }
-            
-            
+
             String timestamp = Library.timeStampLogging(); // Get current timestamp
 
          String safeSuiteName = escapeHtml(suiteName);
          String subject = "Automation Test Report - " + suiteName;
          String toEmails = EnvironmentUtils.getValue("TO_EMAIL");
+         String reportPath = ClientFriendlyReporter.FILE_PATH;
+         if (reportPath == null || reportPath.isBlank() || !new File(reportPath).isFile()) {
+             throw new IOException("Generated client-friendly report is missing: " + reportPath);
+         }
          String emailBody = "<!DOCTYPE html>"
                  + "<html><body style=\"margin:0;padding:24px;background-color:#f3f6fb;"
                  + "font-family:Arial,Helvetica,sans-serif;color:#1f2937;\">"
@@ -607,7 +589,7 @@ public class Listener extends BaseClass implements ITestListener, IRetryAnalyzer
                  + "</td></tr></table></body></html>";
 
          // Send email
-         EmailUtils.sendEmailWithAttachment(toEmails, subject, emailBody, ClientFriendlyReporter.FILE_PATH);
+         EmailUtils.sendEmailWithAttachment(toEmails, subject, emailBody, reportPath);
 
             
             System.out.println("Email with report sent successfully!");
