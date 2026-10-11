@@ -52,7 +52,32 @@ jobs:
           java-version: '17'
           cache: maven
 
+      - name: Verify report email settings for manual run
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        run: |
+          $requiredSecrets = @('FROM_EMAIL', 'EMAIL_API_KEY', 'TO_EMAIL')
+          foreach ($name in $requiredSecrets) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Missing required GitHub Actions secret: $name"
+            }
+          }
+          Write-Host 'Report email settings are configured.'
+
+      - name: Run TestNG suite and email report
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        run: mvn --batch-mode --no-transfer-progress test
+
       - name: Run TestNG suite from testng.xml
+        if: github.event_name == 'pull_request'
         run: mvn --batch-mode --no-transfer-progress test
 
   notify-team:
