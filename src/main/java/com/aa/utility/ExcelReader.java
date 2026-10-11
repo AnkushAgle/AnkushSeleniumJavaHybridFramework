@@ -294,9 +294,6 @@ public class ExcelReader implements AutoCloseable {
         }
 
         try {
-            fis = new FileInputStream(path);
-            workbook = WorkbookFactory.create(fis);
-
             if (rowNum <= 0)
                 return false;
 
@@ -333,11 +330,9 @@ public class ExcelReader implements AutoCloseable {
             }
 
             System.out.println("Data Succesfully Write " + data);
-            fileOut = new FileOutputStream(path);
-
-            workbook.write(fileOut);
-
-            fileOut.close();
+            try (FileOutputStream output = new FileOutputStream(path)) {
+                workbook.write(output);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -1116,45 +1111,26 @@ public class ExcelReader implements AutoCloseable {
 
     // Returns true if the column exists in the specified sheet
     public boolean isColumnExist(String sheetName, String colName) {
-        try {
-            // Open the Excel file
-            fis = new FileInputStream(path);
-            workbook = WorkbookFactory.create(fis);
-
-            // Check if the sheet exists
-            int index = workbook.getSheetIndex(sheetName);
-            if (index == -1) {
-                return false; // Sheet doesn't exist
-            }
-
-            // Get the sheet and the first row
-            sheet = workbook.getSheetAt(index);
-            row = sheet.getRow(0); // Assuming the first row contains column headers
-            if (row == null) {
-                return false; // No columns in the sheet
-            }
-
-            // Iterate through the columns in the first row
-            for (int i = 0; i < row.getLastCellNum(); i++) {
-                Cell cell = row.getCell(i);
-                if (cell != null && cell.getStringCellValue().trim().equalsIgnoreCase(colName)) {
-                    return true; // Column exists
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false; // Return false in case of an exception
-        } finally {
-            try {
-                if (fis != null) {
-                    fis.close(); // Ensure file input stream is closed
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        int index = workbook.getSheetIndex(sheetName);
+        if (index == -1) {
+            return false;
         }
 
-        return false; // Column not found
+        sheet = workbook.getSheetAt(index);
+        row = sheet.getRow(0);
+        if (row == null) {
+            return false;
+        }
+
+        for (int i = 0; i < row.getLastCellNum(); i++) {
+            Cell existingCell = row.getCell(i);
+            if (existingCell != null
+                    && existingCell.getCellType() == CellType.STRING
+                    && existingCell.getStringCellValue().trim().equalsIgnoreCase(colName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // returns number of columns in a sheet
@@ -1341,8 +1317,6 @@ public class ExcelReader implements AutoCloseable {
     // returns true if column is created successfully
     public boolean addColumn(String sheetName, String colName) {
         try {
-            fis = new FileInputStream(path);
-            workbook = WorkbookFactory.create(fis);
             int index = workbook.getSheetIndex(sheetName);
             if (index == -1)
                 return false;
@@ -1385,9 +1359,9 @@ public class ExcelReader implements AutoCloseable {
             newCell.setCellValue(colName);
             newCell.setCellStyle(style);
 
-            fileOut = new FileOutputStream(path);
-            workbook.write(fileOut);
-            fileOut.close();
+            try (FileOutputStream output = new FileOutputStream(path)) {
+                workbook.write(output);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();

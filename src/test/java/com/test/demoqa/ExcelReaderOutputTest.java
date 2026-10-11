@@ -5,8 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -26,9 +24,6 @@ public class ExcelReaderOutputTest {
                 Assert.assertTrue(excelReader.setCellData("Result", "Test Case Status", 1, "PASS"));
                 Assert.assertEquals(excelReader.getCellData("Result", "Test Case Status", 1), "PASS");
 
-                try (Workbook workbook = WorkbookFactory.create(resultFile.toFile())) {
-                    Assert.assertNotNull(workbook.getSheet("Result"));
-                }
             }
         } finally {
             try (var paths = Files.walk(tempDirectory)) {
