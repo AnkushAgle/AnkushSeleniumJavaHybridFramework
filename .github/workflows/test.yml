@@ -145,8 +145,28 @@ jobs:
             $securePassword = ConvertTo-SecureString $smtpPassword -AsPlainText -Force
             $credential = [System.Management.Automation.PSCredential]::new($env:FROM_EMAIL, $securePassword)
             $client.EnableSsl = $true
+            $client.UseDefaultCredentials = $false
             $client.Credentials = $credential.GetNetworkCredential()
-            $client.Send($message)
+            try {
+              $client.Send($message)
+            }
+            catch {
+              $exception = $_.Exception
+              $details = @()
+              $statusCode = 'Unknown'
+              while ($null -ne $exception) {
+                if (-not [string]::IsNullOrWhiteSpace($exception.Message)) {
+                  $details += $exception.Message
+                }
+                if ($exception -is [System.Net.Mail.SmtpException]) {
+                  $statusCode = $exception.StatusCode
+                }
+                $exception = $exception.InnerException
+              }
+              $detailText = $details -join ' -> '
+              Write-Host "::error::SMTP delivery failed (status: $statusCode). $detailText"
+              throw 'Email delivery failed. Confirm FROM_EMAIL is the Gmail account for EMAIL_API_KEY, EMAIL_API_KEY is a Google App Password, and SMTP access is allowed.'
+            }
             Write-Host "HTML push-check notification sent to the configured team recipients."
           }
           finally {
